@@ -1,5 +1,4 @@
 import streamlit as st
-from confluent_kafka import Producer, KafkaError
 import telnetlib
 import requests
 import plotly.graph_objects as go
@@ -7,20 +6,22 @@ import pandas as pd
 import time
 import threading
 import json
+from kafka import KafkaProducer
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from pythonping import ping
 
 # Thông tin kết nối Kafka
 conf = {
-    'bootstrap.servers': '103.88.122.142:9092',
-    'message.max.bytes': 10000000,
-    'compression.type': 'gzip',
-    'linger.ms': 5,
-    }
+    'bootstrap_servers': '103.88.122.142:9092',
+    'acks': 'all',
+    'retries': 3,
+    'compression_type': 'gzip',
+    'linger_ms': 5
+}
 
-# Khởi tạo Kafka producer 
-producer = Producer(conf)
+# Khởi tạo Kafka producer
+producer = KafkaProducer(**conf)
 
 # Khởi tạo topic
 topic = 'health_check'
@@ -29,7 +30,8 @@ topic = 'health_check'
 is_running_kafka = True
 
 # Gửi message đến kafka topic
-producer.produce(topic=topic, value=json.dumps("v").encode('utf-8'))
+producer.send(topic=topic, value=json.dumps("v").encode('utf-8'))
+
 
 # Thông tin kết nối InfluxDB
 url = "http://103.88.122.142:8086"
