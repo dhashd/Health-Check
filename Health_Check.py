@@ -302,65 +302,68 @@ def chart_page():
     # Kết nối tới InfluxDB
     client = InfluxDBClient(url=url, token=token)
 
-    # Truy vấn dữ liệu từ InfluxDB
-    query = f'from(bucket: "{bucket}") |> range(start: -1h) |> filter(fn: (r) => r._measurement == "{selected_measurement}")'
-    tables = client.query_api().query(query, org=org)
+    while True:
+        # Truy vấn dữ liệu từ InfluxDB
+        query = f'from(bucket: "{bucket}") |> range(start: -1h) |> filter(fn: (r) => r._measurement == "{selected_measurement}")'
+        tables = client.query_api().query(query, org=org)
 
-    # Tạo biểu đồ cho từng địa chỉ IP hoặc measurement
-    charts = {}
+        # Tạo biểu đồ cho từng địa chỉ IP hoặc measurement
+        charts = {}
 
-    def process_record(record):
-        if selected_measurement in ["http", "https"]:
-            address_tag = record.values.get("url")
-            return ("URL", address_tag)
-        elif selected_measurement == "ping":
-            address_tag = record.values.get("address")
-            return ("Address", address_tag)
-        elif selected_measurement == "telnet":
-            address_tag = record.values.get("address")
-            port_tag = record.values.get("port")
-            return ("AddressPort", (address_tag, port_tag))
+        def process_record(record):
+            if selected_measurement in ["http", "https"]:
+                address_tag = record.values.get("url")
+                return ("URL", address_tag)
+            elif selected_measurement == "ping":
+                address_tag = record.values.get("address")
+                return ("Address", address_tag)
+            elif selected_measurement == "telnet":
+                address_tag = record.values.get("address")
+                port_tag = record.values.get("port")
+                return ("AddressPort", (address_tag, port_tag))
 
-    for table in tables:
-        for record in table.records:
-            key = process_record(record)
-            if key not in charts:
-                charts[key] = {
-                    "chart_data": [],
-                    "color_data": []
-                }
+        for table in tables:
+            for record in table.records:
+                key = process_record(record)
+                if key not in charts:
+                    charts[key] = {
+                        "chart_data": [],
+                        "color_data": []
+                    }
 
-            value = int(record.get_value())  # Chuyển đổi giá trị thành số nguyên
-            charts[key]["chart_data"].append((record.get_time(), value))
-            if value == 1:
-                charts[key]["color_data"].append('red')
-            elif value == 2:
-                charts[key]["color_data"].append('limegreen')
-            else:
-                charts[key]["color_data"].append('blue')
+                value = int(record.get_value())  # Chuyển đổi giá trị thành số nguyên
+                charts[key]["chart_data"].append((record.get_time(), value))
+                if value == 1:
+                    charts[key]["color_data"].append('red')
+                elif value == 2:
+                    charts[key]["color_data"].append('limegreen')
+                else:
+                    charts[key]["color_data"].append('blue')
 
-    # Hiển thị các biểu đồ
-    for key, chart_data in charts.items():
-        selected_measurement, address_tag = key
+        # Hiển thị các biểu đồ
+        for key, chart_data in charts.items():
+            selected_measurement, address_tag = key
 
-        st.subheader(f"Chart: {address_tag}")
+            st.subheader(f"Chart: {address_tag}")
 
-        if chart_data["chart_data"]:
-            chart_df = pd.DataFrame(chart_data["chart_data"], columns=["Timestamp", "Value"])
-            chart_df.set_index("Timestamp", inplace=True)
+            if chart_data["chart_data"]:
+                chart_df = pd.DataFrame(chart_data["chart_data"], columns=["Timestamp", "Value"])
+                chart_df.set_index("Timestamp", inplace=True)
 
-            fig = go.Figure(data=[go.Bar(x=chart_df.index, y=chart_df["Value"], marker=dict(color=chart_data["color_data"]))])
-            fig.update_layout(xaxis_title="Timestamp", yaxis_title="Value")
+                fig = go.Figure(data=[go.Bar(x=chart_df.index, y=chart_df["Value"], marker=dict(color=chart_data["color_data"]))])
+                fig.update_layout(xaxis_title="Timestamp", yaxis_title="Value")
 
-            # Hiển thị biểu đồ trong Streamlit
-            st.plotly_chart(fig, use_container_width=True)
+                # Hiển thị biểu đồ trong Streamlit
+                st.plotly_chart(fig, use_container_width=True)
 
-             # Delay để cập nhật sau một khoảng thời gian
-            time.sleep(10)  # Cập nhật sau ... giây
+        # Delay để cập nhật sau một khoảng thời gian
+        time.sleep(10)  # Cập nhật sau ... giây
+
+        # Rerun lại trang Streamlit để cập nhật dữ liệu mới
+        st.experimental_rerun()
 
     # Đóng kết nối
     client.close()
-
 
 # Hàm xử lý sự kiện khi người dùng nhấp vào nút "Add"
 def add_check_action(check_type, ip_address=None, port=None, url=None, interval=None):
