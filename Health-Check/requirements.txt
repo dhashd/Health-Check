@@ -1,2 +1,7 @@
-pip install plotly
-pip install influxdb
+/home/appuser/venv/bin/python -m pip install --upgrade pip
+pythonping
+pandas
+kafka-python
+streamlit
+plotly==5.15.0
+influxdb
