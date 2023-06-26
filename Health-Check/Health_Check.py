@@ -1,7 +1,6 @@
 import streamlit as st
 import telnetlib
 import requests
-import plotly
 import plotly.graph_objects as go
 import pandas as pd
 import time
