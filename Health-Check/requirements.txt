@@ -3,4 +3,4 @@ pandas
 kafka-python
 streamlit
 plotly==5.15.0
-influxdb
+influxdb-client
