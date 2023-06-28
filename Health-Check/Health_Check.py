@@ -1,5 +1,4 @@
 import streamlit as st
-import subprocess
 import telnetlib
 import requests
 import plotly.graph_objects as go
@@ -10,6 +9,7 @@ import json
 from kafka import KafkaProducer
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+from pythonping import ping
 
 # Thông tin kết nối Kafka
 conf = {
@@ -116,11 +116,8 @@ def check_and_notify_https_status(url, current_status):
 
 def ping_ip(address):
     try:
-        # Run the ping command using subprocess
-        ping_process = subprocess.Popen(['ping', '-c', '1', address], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        _, stderr = ping_process.communicate()
-        
-        if ping_process.returncode == 0:
+        response_list = ping(address, count=1)
+        if response_list.success():
             current_status = '2'
         else:
             current_status = '1'
@@ -136,10 +133,10 @@ def ping_ip(address):
         fields = {'status': current_status}
         send_to_influxdb('ping', tags, fields)
         
-        if current_status == '1':
+        if current_status == '2':
             st.write(f'Ping to {address} :green[successful]')
         else: 
-            st.write(f'Ping to {address} :green[successful]')
+            st.write(f'Ping to {address} :red[failed]')
     except Exception as e:
         st.write(f'Ping to {address} :red[failed] {str(e)}')
 
