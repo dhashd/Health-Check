@@ -114,14 +114,19 @@ def check_and_notify_https_status(url, current_status):
 
 def ping_ip(address):
     try:
-        # Run the ping command using subprocess
-        ping_process = subprocess.Popen(['ping', address], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        _, stderr = ping_process.communicate()
+        ping_output = subprocess.check_output(["ping", address])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+    except Exception as e:
+        return f'Ping to {address} failed: {str(e)}'
         
-        if ping_process.returncode == 0:
-            current_status = '2'
-        else:
-            current_status = '1'
+    if ping_ip(address):
+        current_status = '2'
+        st.write(f'Ping to {address}: :green[successful]')
+    else:
+        current_status = '1'
+        st.write(f'Ping to {address}: :red[failed]')
         
         check_and_notify_status(
             f'ping_{address}',
