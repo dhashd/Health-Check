@@ -3,5 +3,5 @@ confluent-kafka
 streamlit
 plotly==5.15.0
 influxdb-client
-ping
+subprocess
 pythonping
