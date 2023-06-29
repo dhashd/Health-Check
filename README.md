@@ -6,4 +6,4 @@
   + Database: InfluxDB
   + Data stream processing: Apache Kafka, Apache ZooKeeper
   + Data collector: Fluentd
-
+Link web: https://healthcheckpy-xpphorsy99a.streamlit.app/
