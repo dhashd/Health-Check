@@ -11,6 +11,7 @@ import json
 from confluent_kafka import Producer, KafkaError
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
+from pythonping import ping
 
 # Thông tin kết nối Kafka
 conf = {
