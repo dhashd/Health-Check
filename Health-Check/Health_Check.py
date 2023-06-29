@@ -1,5 +1,5 @@
 import streamlit as st
-import subprocess
+import ping3
 import telnetlib
 import requests
 import plotly.graph_objects as go
@@ -70,6 +70,7 @@ def send_discord_notification(message):
         print('Failed to send Discord notification.')
 
 previous_statuses = {}
+
 def check_and_notify_status(status_key, current_status, success_message, failure_message):
     global previous_statuses
     previous_status = previous_statuses.get(status_key)
@@ -84,6 +85,7 @@ def check_and_notify_status(status_key, current_status, success_message, failure
 
 previous_http_statuses = {}
 previous_https_statuses = {}
+
 def check_and_notify_http_status(url, current_status):
     global previous_http_statuses
     
@@ -91,9 +93,9 @@ def check_and_notify_http_status(url, current_status):
     
     if current_status != previous_status:
         if current_status == '1':
-            send_discord_notification(f'HTTP request to {url} failed. Status code: {response.status_code}')
+            send_discord_notification(f'HTTP request to {url} ❌ Failed. Status code: {response.status_code}')
         elif current_status == '2':
-            send_discord_notification(f'HTTP request to {url} successful.')
+            send_discord_notification(f'HTTP request to {url} ✅ Successful.')
         
         previous_http_statuses[url] = current_status
 
@@ -104,31 +106,35 @@ def check_and_notify_https_status(url, current_status):
     
     if current_status != previous_status:
         if current_status == '1':
-            send_discord_notification(f'HTTPS request to {url} failed. Status code: {response.status_code}')
+            send_discord_notification(f'HTTPS request to {url} ❌ Failed. Status code: {response.status_code}')
         elif current_status == '2':
-            send_discord_notification(f'HTTPS request to {url} successful.')
+            send_discord_notification(f'HTTPS request to {url} ✅ Successful.')
         
         previous_https_statuses[url] = current_status
 
 def ping_ip(address):
     try:
-        # Ping the IP address using subprocess module
-        response = subprocess.run(['ping',address], capture_output=True, text=True)
-        if response.returncode == 0:
+        # Ping đến địa chỉ IP
+        response_time = ping3.ping(address)
+
+        if response_time:
             current_status = '2'
-            st.write(f'Ping to {address}: ✅ successful')
+            print(f'Ping to {address}: ✅ successful. Response time: {response_time} ms')
         else:
             current_status = '1'
-            st.write(f'Ping to {address}: ❌ failed')
+            print(f'Ping to {address}: ❌ failed')
+
     except Exception as e:
-        st.write(f'Ping to {address} failed: {str(e)}')
+        current_status = '1'
+        print(f'Ping to {address} failed: {str(e)}')
     finally:
         check_and_notify_status(
     f'ping_{address}',
     current_status,
-    f'Ping to {address} successful.',
-    f'Ping to {address} failed.'
+    f'Ping to {address} ✅ Successful.',
+    f'Ping to {address} ❌ Failed.'
     )
+
     tags = {'address': address}
     fields = {'status': current_status}
     send_to_influxdb('ping', tags, fields)
@@ -152,8 +158,8 @@ def telnet_ip(address, port):
         check_and_notify_status(
             f'telnet_{address}_{port}',
             current_status,
-            f'Telnet to {address}:{port} successful.', 
-            f'Telnet to {address}:{port} failed.' 
+            f'Telnet to {address}:{port} ✅ Successful.', 
+            f'Telnet to {address}:{port} Failed.' 
         )
         
         tags = {'address': address, 'port': port}
