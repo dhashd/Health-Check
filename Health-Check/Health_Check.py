@@ -1,5 +1,6 @@
 import streamlit as st
 import ping3
+import subprocess
 import telnetlib
 import requests
 import plotly.graph_objects as go
@@ -114,19 +115,17 @@ def check_and_notify_https_status(url, current_status):
 
 def ping_ip(address):
     try:
-        # Ping đến địa chỉ IP
-        response_time = ping3.ping(address)
-
-        if response_time:
+        # Ping the IP address using subprocess module
+        response = subprocess.run(['ping', address], capture_output=True, text=True)
+        if response.returncode == 0:
             current_status = '2'
-            print(f'Ping to {address}: ✅ successful. Response time: {response_time} ms')
+            st.write(f'Ping to {address}: ✅ Successful')
         else:
             current_status = '1'
-            print(f'Ping to {address}: ❌ failed')
-
+            st.write(f'Ping to {address}: ❌ Failed')
     except Exception as e:
-        current_status = '1'
-        print(f'Ping to {address} failed: {str(e)}')
+        st.write(f'Ping to {address} ❌ Failed: {str(e)}')
+
     finally:
         check_and_notify_status(
     f'ping_{address}',
