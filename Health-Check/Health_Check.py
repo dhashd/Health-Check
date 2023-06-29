@@ -31,6 +31,7 @@ is_running_kafka = True
 # Gửi message đến kafka topic
 producer.produce(topic=topic, value=json.dumps("v").encode('utf-8'))
 
+
 # Thông tin kết nối InfluxDB
 url = "http://103.88.122.142:8086"
 token = "8kGaTZ1CJKLv2go70bVIrL4yBPJnPaJvao8AtHHhLKji5uonRZ4wFQX6P7-X-KxfqSnfJSp7wm5rP-IXDHuC1g=="
@@ -69,10 +70,8 @@ def send_discord_notification(message):
         print('Failed to send Discord notification.')
 
 previous_statuses = {}
-
 def check_and_notify_status(status_key, current_status, success_message, failure_message):
     global previous_statuses
-    
     previous_status = previous_statuses.get(status_key)
     
     if current_status != previous_status:
@@ -80,12 +79,11 @@ def check_and_notify_status(status_key, current_status, success_message, failure
             send_discord_notification(failure_message)
         elif current_status == '2':
             send_discord_notification(success_message)
-        
         previous_statuses[status_key] = current_status
+
 
 previous_http_statuses = {}
 previous_https_statuses = {}
-
 def check_and_notify_http_status(url, current_status):
     global previous_http_statuses
     
@@ -114,53 +112,42 @@ def check_and_notify_https_status(url, current_status):
 
 def ping_ip(address):
     try:
-        ping_output = subprocess.check_output(["ping", address])
-        return True
-    except subprocess.CalledProcessError:
-        return False
+        # Ping the IP address using subprocess module
+        response = subprocess.run(['ping',address], capture_output=True, text=True)
+        if response.returncode == 0:
+            current_status = '2'
+            st.write(f'Ping to {address}: ✅ successful')
+        else:
+            current_status = '1'
+            st.write(f'Ping to {address}: ❌ failed')
     except Exception as e:
-        return f'Ping to {address} failed: {str(e)}'
-        
-    if ping_ip(address):
-        current_status = '2'
-        st.write(f'Ping to {address}: :green[successful]')
-    else:
-        current_status = '1'
-        st.write(f'Ping to {address}: :red[failed]')
-        
+        st.write(f'Ping to {address} failed: {str(e)}')
+    finally:
         check_and_notify_status(
-            f'ping_{address}',
-            current_status,
-            f'Ping to {address} successful.',
-            f'Ping to {address} failed.'
-        )
-        
-        tags = {'address': address}
-        fields = {'status': current_status}
-        send_to_influxdb('ping', tags, fields)
-        
-        if current_status == '1':
-            st.write(f'Ping to {address} :green[successful]')
-        else: 
-            st.write(f'Ping to {address} :green[successful]')
-    except Exception as e:
-        st.write(f'Ping to {address} :red[failed] {str(e)}')
+    f'ping_{address}',
+    current_status,
+    f'Ping to {address} successful.',
+    f'Ping to {address} failed.'
+    )
+    tags = {'address': address}
+    fields = {'status': current_status}
+    send_to_influxdb('ping', tags, fields)
 
 def telnet_ip(address, port):
     try:
         tn = telnetlib.Telnet(address, port, timeout=3)
         tn.close()
         current_status = '2'
-        st.write(f'Telnet to {address}:{port}: :green[successful]')
+        st.write(f'Telnet to {address}:{port}: ✅ Successful]')
     except ConnectionRefusedError:
         current_status = '1'
-        st.write(f'Telnet to {address}:{port}: :red[failed] Connection refused.')
+        st.write(f'Telnet to {address}:{port}: ❌ Failed Connection refused.')
     except TimeoutError:
         current_status = '1'
-        st.write(f'Telnet to {address}:{port}: :red[failed] Connection timeout.')
+        st.write(f'Telnet to {address}:{port}: ❌ Failed Connection timeout.')
     except Exception as e:
         current_status = '1'
-        st.write(f'Telnet to {address}:{port}: :red[failed] {str(e)}')
+        st.write(f'Telnet to {address}:{port}: ❌ Failed {str(e)}')
     finally:
         check_and_notify_status(
             f'telnet_{address}_{port}',
@@ -178,16 +165,16 @@ def http_request(url):
         response = requests.get(url)
         if response.status_code == 200:
             current_status = '2'
-            st.write(f'HTTP request to {url}: :green[successful]')
+            st.write(f'HTTP request to {url}: ✅ Successful')
         else:
             current_status = '1'
-            st.write(f'HTTP request to {url}: :red[failed] Status code: {response.status_code}')
+            st.write(f'HTTP request to {url}: ❌ Failed Status code: {response.status_code}')
     except requests.exceptions.RequestException as e:
         current_status = '1'
-        st.write(f'HTTP request to {url}: :red[failed] {str(e)}')
+        st.write(f'HTTP request to {url}: ❌ Failed {str(e)}')
     
     check_and_notify_http_status(url, current_status)
-    
+
     tags = {'url': url}
     fields = {'status': current_status}
     send_to_influxdb('http', tags, fields)
@@ -197,13 +184,13 @@ def https_request(url):
         response = requests.get(url, verify=True)
         if response.status_code == 200:
             current_status = '2'
-            st.write(f'HTTPS request to {url}: :green[successful]')
+            st.write(f'HTTPS request to {url}: ✅ Successful')
         else:
             current_status = '1'
-            st.write(f'HTTPS request to {url}: :red[failed] Status code: {response.status_code}')
+            st.write(f'HTTPS request to {url}: ❌ Failed Status code: {response.status_code}')
     except requests.exceptions.RequestException as e:
         current_status = '1'
-        st.write(f'HTTPS request to {url}: :red[failed] {str(e)}')
+        st.write(f'HTTPS request to {url}: ❌ Failed {str(e)}')
     
     check_and_notify_https_status(url, current_status)
     
